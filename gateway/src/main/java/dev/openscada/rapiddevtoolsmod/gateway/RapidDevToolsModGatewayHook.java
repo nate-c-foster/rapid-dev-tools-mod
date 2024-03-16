@@ -5,15 +5,21 @@ import java.util.Optional;
 import javax.servlet.http.HttpServletResponse;
 
 import com.inductiveautomation.ignition.common.licensing.LicenseState;
+import com.inductiveautomation.ignition.common.project.resource.adapter.ResourceTypeAdapter;
 import com.inductiveautomation.ignition.common.project.resource.adapter.ResourceTypeAdapterRegistry;
 import com.inductiveautomation.ignition.gateway.dataroutes.RouteGroup;
 import com.inductiveautomation.ignition.gateway.model.AbstractGatewayModuleHook;
 import com.inductiveautomation.ignition.gateway.model.GatewayContext;
+import com.inductiveautomation.ignition.gateway.model.GatewayModuleHook;
 import com.inductiveautomation.ignition.gateway.web.models.ConfigCategory;
 import com.inductiveautomation.ignition.gateway.web.models.IConfigTab;
-import com.inductiveautomation.ignition.gateway.web.models.SystemMap;
+//import com.inductiveautomation.ignition.gateway.web.models.SystemMap;
 import com.inductiveautomation.ignition.gateway.web.pages.config.overviewmeta.ConfigOverviewContributor;
 import com.inductiveautomation.ignition.gateway.web.pages.status.overviewmeta.OverviewContributor;
+import com.inductiveautomation.ignition.common.script.ScriptManager;
+import com.inductiveautomation.ignition.common.script.hints.PropertiesFileDocProvider;
+
+import dev.openscada.rapiddevtoolsmod.common.RapidDevToolsScripts;
 
 /**
  * Class which is instantiated by the Ignition platform when the module is loaded in the gateway scope.
@@ -45,6 +51,13 @@ public class RapidDevToolsModGatewayHook extends AbstractGatewayModuleHook {
     @Override
     public void shutdown() {
 
+    }
+
+    @Override
+    public void initializeScriptManager(ScriptManager manager){
+        super.initializeScriptManager(manager);
+
+        manager.addScriptModule("system.rapiddev", new RapidDevToolsScripts(), new PropertiesFileDocProvider());
     }
 
     /**
@@ -99,7 +112,7 @@ public class RapidDevToolsModGatewayHook extends AbstractGatewayModuleHook {
      */
     @Override
     public boolean isFreeModule() {
-        return false;
+        return true;
     }
 
     /**

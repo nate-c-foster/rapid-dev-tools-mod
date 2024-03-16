@@ -37,7 +37,7 @@ ignitionModule {
      */
     moduleVersion.set("${project.version}")
 
-    moduleDescription.set("A short sentence describing what it does, but not much longer than this.")
+    moduleDescription.set("A suite of tools to speed up development.")
 
     /*
      * Minimum version of Ignition required for the module to function correctly.  This typically won't change over
@@ -93,5 +93,5 @@ ignitionModule {
      * Optional unsigned modl settings. If true, modl signing will be skipped. This is not for production and should
      * be used merely for development testing
      */
-    skipModlSigning.set(false)
+    skipModlSigning.set(true)
 }
