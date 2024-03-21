@@ -4,9 +4,12 @@ import com.inductiveautomation.ignition.common.licensing.LicenseState;
 import com.inductiveautomation.ignition.designer.IgnitionDesigner;
 import com.inductiveautomation.ignition.designer.model.AbstractDesignerModuleHook;
 import com.inductiveautomation.ignition.designer.model.DesignerContext;
+import com.inductiveautomation.ignition.designer.sqltags.dialog.OnTagSelectedListener;
 import com.inductiveautomation.ignition.designer.tags.frame.TagBrowserFrame;
 import com.inductiveautomation.ignition.designer.tags.tree.TagBrowserPanel;
+import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 
+import java.util.List;
 import javax.swing.Icon;
 import javax.swing.JMenuItem;
 import java.awt.event.ActionEvent;
@@ -22,15 +25,15 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
     private static final Logger logger = LoggerFactory.getLogger(RapidDevToolsModDesignerHook.class);
 
-    public static DesignerContext context;
-    public static String projectName;
-
+    private DesignerContext context;
+    private String projectName;
+    List<BrowseTreeNode> selectedTags;
 
     @Override
     public void startup(DesignerContext context, LicenseState activationState) throws Exception {
         // implelement functionality as required
-        RapidDevToolsModDesignerHook.context = context;
-        RapidDevToolsModDesignerHook.projectName = context.getProjectName();
+        this.context = context;
+        this.projectName = context.getProjectName();
         addMenuItemToTagBrowser();
 
     }
@@ -38,15 +41,26 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
     private void addMenuItemToTagBrowser() {
 
-        JMenuItem addToViewMenuItem = new JMenuItem("Add to View");
-        addToViewMenuItem.addActionListener(new ActionListener() {
+        JMenuItem menuItem = new JMenuItem("Add to View");
+
+        ActionListener actionListener = new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                addToViewMenuItem.setText("Pressed!");
+                for (BrowseTreeNode tagNode : selectedTags){
+                    logger.info(tagNode.getTagPath().toString());
+                }
             }
-        });
+        };
+
+        OnTagSelectedListener tagListener = new OnTagSelectedListener() {
+            public void tagSelectionChanged(List<BrowseTreeNode> selectedNodes) {
+                selectedTags = selectedNodes;
+            }     
+        };
+        menuItem.addActionListener(actionListener);
 
         TagBrowserFrame tagBrowserFrame = context.getTagBrowser();
-        tagBrowserFrame.addTagPopupMenuComponent(addToViewMenuItem, 0);
+        tagBrowserFrame.addOnTagSelectedListener(tagListener);
+        tagBrowserFrame.addTagPopupMenuComponent(menuItem, 0);
     }
 
 
