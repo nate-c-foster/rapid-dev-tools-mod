@@ -8,6 +8,8 @@ import com.inductiveautomation.ignition.designer.sqltags.dialog.OnTagSelectedLis
 import com.inductiveautomation.ignition.designer.tags.frame.TagBrowserFrame;
 import com.inductiveautomation.ignition.designer.tags.tree.TagBrowserPanel;
 import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
+import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
+import com.inductiveautomation.ignition.common.tags.paths.parser.TagPathParser;
 
 import java.util.List;
 import javax.swing.Icon;
@@ -47,6 +49,11 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
             public void actionPerformed(ActionEvent e) {
                 for (BrowseTreeNode tagNode : selectedTags){
                     logger.info(tagNode.getTagPath().toString());
+                    logger.info(TagPathParser.parseSafe(tagNode.getTagPath().toString() + "/Parameters.opcPrefix").toString());
+                    logger.info(tagNode.getTagType().toString());
+                    logger.info(tagNode.getInfo().getObjectType().name());
+                    logger.info(tagNode.getInfo().getSubTypeId());
+                    logger.info(tagNode.getInfo().getAttributes().toString());
                 }
             }
         };
@@ -54,8 +61,17 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
         OnTagSelectedListener tagListener = new OnTagSelectedListener() {
             public void tagSelectionChanged(List<BrowseTreeNode> selectedNodes) {
                 selectedTags = selectedNodes;
+                if (    selectedTags.size() > 0 && 
+                        selectedTags.stream().allMatch( selectedTag -> selectedTag.getInfo().getObjectType() == TagObjectType.UdtInstance)) {
+                    menuItem.setEnabled(true);
+                }
+                else {
+                    menuItem.setEnabled(false);
+                }
             }     
         };
+
+        
         menuItem.addActionListener(actionListener);
 
         TagBrowserFrame tagBrowserFrame = context.getTagBrowser();
@@ -67,4 +83,4 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 }
 
 
-//         JMenuItem addToViewMenuItem = new JMenuItem("Add to View", IconUtil.getIcon("/dev/openscada/rapiddevtoolsmod/designer/icons/ic_pull.svg"));
+//  JMenuItem addToViewMenuItem = new JMenuItem("Add to View", IconUtil.getIcon("/dev/openscada/rapiddevtoolsmod/designer/icons/ic_pull.svg"));

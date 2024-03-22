@@ -4,11 +4,11 @@
     "moduleDescription": "A suite of tools to speed up development.",
     "version": "0.0.1-SNAPSHOT",
     "checksum": {
-        "checksum": "e3690d3ad5d8216c62bd1d209a3936fa741bc16619f5f663a769c53434f0c327",
+        "checksum": "67b985561df34e8f7562459dc4a63167480694e53dc53c50e2e0ade89be98613",
         "algorithm": "SHA256"
     },
     "fileName": "Rapid-Dev-Tools-Mod.unsigned.modl",
-    "fileSize": 7883,
+    "fileSize": 8919,
     "artifacts": {
         ":common": {
             "projectPath": ":common",
