@@ -52,7 +52,6 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
     private void addMenuItemToTagBrowser() {
 
         JMenuItem menuItem = new JMenuItem("Add to View");
-
         ActionListener actionListener = new ActionListener() {
             public void actionPerformed(ActionEvent event) {
                 for (BrowseTreeNode tagNode : selectedTags){

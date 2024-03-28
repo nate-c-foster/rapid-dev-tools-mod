@@ -65,7 +65,12 @@ ignitionModule {
      *    "G" to "com.inductiveautomation.opcua"
      *  )
      */
-    moduleDependencies.set(mapOf<String, String>())
+    /* moduleDependencies.set(mapOf<String, String>()) */
+    moduleDependencies.putAll(
+        mapOf(
+            "com.inductiveautomation.perspective" to "GD"
+        )
+    )
 
     /*
      * Map of fully qualified hook class to the shorthand scope.  Only one scope may apply to a class, and each scope

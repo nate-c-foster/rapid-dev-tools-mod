@@ -14,4 +14,6 @@ dependencies {
     compileOnly(project(":common"))
 
     // add designer scoped dependencies here
+    compileOnly("com.inductiveautomation.ignitionsdk:perspective-common:${rootProject.extra["sdk_version"]}")
+    compileOnly("com.inductiveautomation.ignitionsdk:perspective-designer:${rootProject.extra["sdk_version"]}")
 }
