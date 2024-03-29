@@ -5,12 +5,18 @@ import com.inductiveautomation.ignition.common.document.DocumentArray;
 import com.inductiveautomation.ignition.common.licensing.LicenseState;
 import com.inductiveautomation.ignition.common.model.values.QualifiedValue;
 import com.inductiveautomation.ignition.common.model.values.QualityCode;
+import com.inductiveautomation.ignition.common.project.resource.ProjectResource;
+import com.inductiveautomation.ignition.common.project.resource.ResourcePath;
 import com.inductiveautomation.ignition.designer.IgnitionDesigner;
 import com.inductiveautomation.ignition.designer.model.AbstractDesignerModuleHook;
 import com.inductiveautomation.ignition.designer.model.DesignerContext;
+import com.inductiveautomation.ignition.designer.project.DesignableProject;
 import com.inductiveautomation.ignition.designer.sqltags.dialog.OnTagSelectedListener;
 import com.inductiveautomation.ignition.designer.tags.frame.TagBrowserFrame;
 import com.inductiveautomation.ignition.designer.tags.tree.TagBrowserPanel;
+import com.inductiveautomation.perspective.common.PerspectiveModule;
+import com.inductiveautomation.perspective.common.config.ComponentConfig;
+import com.inductiveautomation.perspective.common.config.ViewConfig;
 import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
 import com.inductiveautomation.ignition.common.tags.paths.parser.TagPathParser;
@@ -25,6 +31,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.Arrays;
 import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
+
+import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,12 +72,13 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
                     TagPath dropConfigPath = TagPathParser.parseSafe(tagNode.getTagPath().toString() + ".dropConfig");
                     try {
-                        List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get();
+                        List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get(); // this is CompletableFuture, do better
                         QualifiedValue qv = qvs.get(0);
                         if (qv.getQuality().isGood()) {
                             DocumentArray docArray = (DocumentArray) qv.getValue();
                             if (docArray.size() > 0) {
                                 logger.info(docArray.get(0).getAsDocument().getAsDocumentPrimitive("name").getAsString());
+                                addSymbolToView(docArray.get(0).getAsDocument().getAsDocumentPrimitive("symbolJson").getAsString(), "Test Views/View 1/P&ID");
                             }
                             
                         } 
@@ -122,6 +131,20 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
         tagBrowserFrame.addTagPopupMenuComponent(menuItem, 0);
     }
 
+
+
+
+    void addSymbolToView(String symbolJson, String viewPath) {
+        DesignableProject designableProject = context.getProject();
+        ResourcePath resourcePath = new ResourcePath(ViewConfig.RESOURCE_TYPE, viewPath);
+        ProjectResource projectResource = designableProject.getLocalResource(resourcePath).get();  // this is Optional type, do better
+        ViewConfig viewConfig = ViewConfig.fromProjectResource(projectResource, PerspectiveModule.createPerspectiveCompatibleGson());
+        viewConfig.root.children.add(PerspectiveModule.createPerspectiveCompatibleGson().fromJson(symbolJson, ComponentConfig.class));
+        ProjectResource newProjectResource = projectResource.toBuilder()
+                                                            .putData(ViewConfig.RESOURCE_FILENAME, PerspectiveModule.createPerspectiveCompatibleGson().toJson(viewConfig).getBytes())
+                                                            .build();
+        designableProject.createOrModify(newProjectResource);
+    }
 
 }
 
