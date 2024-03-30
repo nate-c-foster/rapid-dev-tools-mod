@@ -1,124 +1,138 @@
 package dev.openscada.rapiddevtoolsmod.designer;
 
-import com.inductiveautomation.ignition.common.document.DocumentArray;
 import com.inductiveautomation.ignition.common.licensing.LicenseState;
-import com.inductiveautomation.ignition.common.model.values.QualifiedValue;
 import com.inductiveautomation.ignition.designer.model.AbstractDesignerModuleHook;
 import com.inductiveautomation.ignition.designer.model.DesignerContext;
 import com.inductiveautomation.ignition.designer.sqltags.dialog.OnTagSelectedListener;
 import com.inductiveautomation.ignition.designer.tags.frame.TagBrowserFrame;
+import com.inductiveautomation.perspective.common.PerspectiveModule;
 import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
-import com.inductiveautomation.ignition.common.tags.paths.parser.TagPathParser;
-import com.inductiveautomation.ignition.common.tags.model.TagPath;
 
 
 import java.util.List;
 import java.util.Optional;
-import java.util.ArrayList;
-import javax.swing.Icon;
+
+import javax.swing.JMenu;
+//import javax.swing.Icon;
 import javax.swing.JMenuItem;
+
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
+//import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+// import org.slf4j.Logger;
+// import org.slf4j.LoggerFactory;
 
 /**
  * This is the Designer-scope module hook.  The minimal implementation contains a startup method.
  */
 public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
-    private static final Logger logger = LoggerFactory.getLogger(RapidDevToolsModDesignerHook.class);
+    //private static final Logger logger = LoggerFactory.getLogger(RapidDevToolsModDesignerHook.class);
 
     private DesignerContext context;
-    private String projectName;
-    List<BrowseTreeNode> selectedTags;
+
 
     @Override
     public void startup(DesignerContext context, LicenseState activationState) throws Exception {
         // implelement functionality as required
         this.context = context;
-        this.projectName = context.getProjectName();
         addMenuItemToTagBrowser();
 
     }
 
 
+
     private void addMenuItemToTagBrowser() {
 
-        JMenuItem menuItem = new JMenuItem("Copy View Config");
-        ActionListener actionListener = new ActionListener() {
-            public void actionPerformed(ActionEvent event) {
+        JMenu copyConfigMenu = new JMenu("Copy View Config");
+        OnTagSelectedListener tagListener = new OnTagSelectedListener() {
+  
+            public void tagSelectionChanged(List<BrowseTreeNode> selectedNodes) {
 
-                CopyConfigList copyConfigList = new CopyConfigList();
+                copyConfigMenu.removeAll();
 
-                for (BrowseTreeNode tagNode : selectedTags){
-                    logger.info(tagNode.getTagPath().toString());
+                // ---------------------  Only one tag selected  ----------------------------
+                if ( selectedNodes.size() == 1 ) {
 
-                    Optional<CopyConfig> copyConfigOpt = CopyConfig.fromTagNode(tagNode, context);
+                    if ( selectedNodes.get(0).getInfo().getObjectType() == TagObjectType.UdtInstance ) {
+                        Optional<CopyConfig> copyConfigOpt = CopyConfig.fromTagNode(selectedNodes.get(0), context);
+                        if ( copyConfigOpt.isPresent() ){
+                            List<CopyConfigElement> copyConfigElements = copyConfigOpt.get().getCopyConfig();
 
-                    if (copyConfigOpt.isPresent()) {
-                        copyConfigList.add(copyConfigOpt.get());
+                            // ------- Add a submenu item for each copy config element found
+                            copyConfigMenu.setEnabled(true);
+                            for (CopyConfigElement element : copyConfigElements) {
+                                JMenuItem copyConfigSubMenuItem = new JMenuItem(element.getName());
+                                copyConfigSubMenuItem.addActionListener(new ActionListener() {
+                                    public void actionPerformed(ActionEvent event) {
+                                        addCopyConfigToClipboard(Arrays.asList(element));
+                                    }
+                                });
+                                copyConfigMenu.add(copyConfigSubMenuItem);
+                            }
+                        } else {
+                            copyConfigMenu.setEnabled(false);
+                        }
+                    } else {
+                        copyConfigMenu.setEnabled(false);
+                    }
+
+
+                // --------------------  Multiple tags selected  ------------------------------
+                } else if ( selectedNodes.size() > 1 ) {
+
+                    List<CopyConfigElement> copyConfigElements = new ArrayList<CopyConfigElement>();
+                    for (BrowseTreeNode selectedNode : selectedNodes) {
+                        if ( selectedNode.getInfo().getObjectType() == TagObjectType.UdtInstance  ) {
+                            Optional<CopyConfig> copyConfigOpt = CopyConfig.fromTagNode(selectedNode, context);
+                            if ( copyConfigOpt.isPresent() ) {
+                                // just get the first element for each
+                                CopyConfigElement defaultConfigElement = copyConfigOpt.get().getCopyConfig().get(0);
+                                copyConfigElements.add(defaultConfigElement);
+                            }
+                        }
+                    }
+                    
+                    if (copyConfigElements.size() > 1) {
+                        copyConfigMenu.setEnabled(true);
+                        JMenuItem copyConfigSubMenuItem = new JMenuItem("Default Configs");
+                        copyConfigSubMenuItem.addActionListener(new ActionListener() {
+                            public void actionPerformed(ActionEvent event) {
+                                addCopyConfigToClipboard(copyConfigElements);
+                            }
+                        });
+                        copyConfigMenu.add(copyConfigSubMenuItem);
+                    } else {
+                        copyConfigMenu.setEnabled(false);
                     }
 
                 }
-                copyConfigList.addToClipboard();
             }
         };
 
-        OnTagSelectedListener tagListener = new OnTagSelectedListener() {
-            public void tagSelectionChanged(List<BrowseTreeNode> selectedNodes) {
-                selectedTags = selectedNodes;
 
-                // Only enable menuItem if tag(s) is UdtInstance and has .dropConfig custom property
-                if (    selectedTags.size() > 0 && 
-                        selectedTags.stream().allMatch( selectedTag -> {
-                            if (selectedTag.getInfo().getObjectType() == TagObjectType.UdtInstance) {
-                                TagPath dropConfigPath = TagPathParser.parseSafe(selectedTag.getTagPath().toString() + ".copyConfig");
-                                try {
-                                    List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get();
-                                    QualifiedValue qv = qvs.get(0);
-                                    if (qv.getQuality().isGood()) {
-                                        // TODO: if length of dropConfig > 1, add submenus
-                                        return true;
-                                    } else {
-                                        return false;
-                                    }
-                                } catch (InterruptedException | ExecutionException e) {
-                                    return false;
-                                }
-                            } else {
-                                return false;
-                            }
-                        })) {
-                    menuItem.setEnabled(true);
-                }
-                else {
-                    menuItem.setEnabled(false);
-                }
 
-            }     
-        };
-
-        
-        menuItem.addActionListener(actionListener);
         TagBrowserFrame tagBrowserFrame = context.getTagBrowser();
         tagBrowserFrame.addOnTagSelectedListener(tagListener);
-        tagBrowserFrame.addTagPopupMenuComponent(menuItem, 0);
+        tagBrowserFrame.addTagPopupMenuComponent(copyConfigMenu, 0);
     }
 
 
 
 
-
-
-
-
-
+    public void addCopyConfigToClipboard(List<CopyConfigElement> copyConfigElementList) {
+        if (copyConfigElementList.size() > 0) {
+            String copyConfigListString = PerspectiveModule.createPerspectiveCompatibleGson()
+                                                            .toJson(copyConfigElementList.stream().map(CopyConfigElement::getComponentConfig).toArray());
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(copyConfigListString), null);
+        }
+    }
 
 }
 
