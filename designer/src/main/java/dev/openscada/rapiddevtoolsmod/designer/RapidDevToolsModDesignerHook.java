@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.swing.JMenu;
-//import javax.swing.Icon;
+import javax.swing.Icon;
 import javax.swing.JMenuItem;
 
 import java.awt.Toolkit;
@@ -23,7 +23,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
-//import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
+import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
 
 // import org.slf4j.Logger;
 // import org.slf4j.LoggerFactory;
@@ -51,6 +51,7 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
     private void addMenuItemToTagBrowser() {
 
         JMenu copyConfigMenu = new JMenu("Copy View Config");
+        copyConfigMenu.setIcon(IconUtil.getIcon("/dev/openscada/rapiddevtoolsmod/designer/icons/copy-image.svg"));
         OnTagSelectedListener tagListener = new OnTagSelectedListener() {
   
             public void tagSelectionChanged(List<BrowseTreeNode> selectedNodes) {
@@ -120,7 +121,7 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
         TagBrowserFrame tagBrowserFrame = context.getTagBrowser();
         tagBrowserFrame.addOnTagSelectedListener(tagListener);
-        tagBrowserFrame.addTagPopupMenuComponent(copyConfigMenu, 0);
+        tagBrowserFrame.addTagPopupMenuComponent(copyConfigMenu, 10);
     }
 
 
@@ -136,5 +137,3 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
 }
 
-
-//  JMenuItem addToViewMenuItem = new JMenuItem("Add to View", IconUtil.getIcon("/dev/openscada/rapiddevtoolsmod/designer/icons/ic_pull.svg"));
