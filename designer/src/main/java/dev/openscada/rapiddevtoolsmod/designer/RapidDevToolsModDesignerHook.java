@@ -1,42 +1,29 @@
 package dev.openscada.rapiddevtoolsmod.designer;
 
-import com.inductiveautomation.ignition.common.QualifiedPathUtils;
 import com.inductiveautomation.ignition.common.document.DocumentArray;
 import com.inductiveautomation.ignition.common.licensing.LicenseState;
 import com.inductiveautomation.ignition.common.model.values.QualifiedValue;
-import com.inductiveautomation.ignition.common.model.values.QualityCode;
-import com.inductiveautomation.ignition.common.project.resource.ProjectResource;
-import com.inductiveautomation.ignition.common.project.resource.ResourcePath;
-import com.inductiveautomation.ignition.designer.IgnitionDesigner;
 import com.inductiveautomation.ignition.designer.model.AbstractDesignerModuleHook;
 import com.inductiveautomation.ignition.designer.model.DesignerContext;
-import com.inductiveautomation.ignition.designer.project.DesignableProject;
 import com.inductiveautomation.ignition.designer.sqltags.dialog.OnTagSelectedListener;
 import com.inductiveautomation.ignition.designer.tags.frame.TagBrowserFrame;
-import com.inductiveautomation.ignition.designer.tags.tree.TagBrowserPanel;
-import com.inductiveautomation.perspective.common.PerspectiveModule;
-import com.inductiveautomation.perspective.common.config.ComponentConfig;
-import com.inductiveautomation.perspective.common.config.ViewConfig;
 import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
 import com.inductiveautomation.ignition.common.tags.paths.parser.TagPathParser;
 import com.inductiveautomation.ignition.common.tags.model.TagPath;
-import com.inductiveautomation.ignition.common.gson.Gson;
+
 
 import java.util.List;
+import java.util.Optional;
 import java.util.ArrayList;
 import javax.swing.Icon;
 import javax.swing.JMenuItem;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.Arrays;
 import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
 
-import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,37 +54,19 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
         ActionListener actionListener = new ActionListener() {
             public void actionPerformed(ActionEvent event) {
 
-                ArrayList<ComponentConfig> componentConfigs = new ArrayList<>();
+                CopyConfigList copyConfigList = new CopyConfigList();
+
                 for (BrowseTreeNode tagNode : selectedTags){
                     logger.info(tagNode.getTagPath().toString());
-                    // logger.info(TagPathParser.parseSafe(tagNode.getTagPath().toString() + "/Parameters.opcPrefix").toString());
-                    // logger.info(tagNode.getTagType().toString());
-                    // logger.info(tagNode.getInfo().getObjectType().name());
-                    // logger.info(tagNode.getInfo().getSubTypeId());
-                    // logger.info(tagNode.getInfo().getAttributes().toString());
 
-                    TagPath dropConfigPath = TagPathParser.parseSafe(tagNode.getTagPath().toString() + ".copyConfig");
-                    try {
-                        List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get(); // this is CompletableFuture, do better
-                        QualifiedValue qv = qvs.get(0);
-                        if (qv.getQuality().isGood()) {
-                            DocumentArray docArray = (DocumentArray) qv.getValue();
-                            if (docArray.size() > 0) {
-                                //logger.info(docArray.get(0).getAsDocument().getAsDocumentPrimitive("name").getAsString());
-                                //addSymbolToView(docArray.get(0).getAsDocument().getAsDocumentPrimitive("symbolJson").getAsString(), "Test Views/View 1/P&ID");
-                                String componentConfigJson = docArray.get(0).getAsDocument().getAsDocumentPrimitive("componentJson").getAsString();
-                                componentConfigs.add(PerspectiveModule.createPerspectiveCompatibleGson().fromJson(componentConfigJson, ComponentConfig.class));
-                                
-                            }
-                            
-                        } 
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
+                    Optional<CopyConfig> copyConfigOpt = CopyConfig.fromTagPath(tagNode.getTagPath(), context);
+
+                    if (copyConfigOpt.isPresent()) {
+                        copyConfigList.add(copyConfigOpt.get());
                     }
-
+                    
                 }
-                String copyConfigListString = PerspectiveModule.createPerspectiveCompatibleGson().toJson(componentConfigs);
-                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(copyConfigListString), null);
+                copyConfigList.addToClipboard();
             }
         };
 
@@ -149,17 +118,7 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
 
 
-    void addSymbolToView(String symbolJson, String viewPath) {
-        DesignableProject designableProject = context.getProject();
-        ResourcePath resourcePath = new ResourcePath(ViewConfig.RESOURCE_TYPE, viewPath);
-        ProjectResource projectResource = designableProject.getLocalResource(resourcePath).get();  // this is Optional type, do better
-        ViewConfig viewConfig = ViewConfig.fromProjectResource(projectResource, PerspectiveModule.createPerspectiveCompatibleGson());
-        viewConfig.root.children.add(PerspectiveModule.createPerspectiveCompatibleGson().fromJson(symbolJson, ComponentConfig.class));
-        ProjectResource newProjectResource = projectResource.toBuilder()
-                                                            .putData(ViewConfig.RESOURCE_FILENAME, PerspectiveModule.createPerspectiveCompatibleGson().toJson(viewConfig).getBytes())
-                                                            .build();
-        designableProject.createOrModify(newProjectResource);
-    }
+
 
 }
 
