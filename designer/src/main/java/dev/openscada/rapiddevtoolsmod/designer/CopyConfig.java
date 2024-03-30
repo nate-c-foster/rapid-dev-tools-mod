@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
+import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.document.Document;
 import com.inductiveautomation.ignition.common.document.DocumentArray;
 import com.inductiveautomation.ignition.common.model.values.QualifiedValue;
@@ -24,18 +25,20 @@ public class CopyConfig {
     private DesignerContext context;
     private String name;
     private String componentJson;
+    private String componentName;
     
 
-    public CopyConfig(Document copyConfigDoc, DesignerContext context) {
+    public CopyConfig(Document copyConfigDoc, String componentName, DesignerContext context) {
         this.name = copyConfigDoc.getAsDocumentPrimitive("name").getAsString();
         this.componentJson = copyConfigDoc.getAsDocumentPrimitive("componentJson").getAsString();
+        this.componentName = componentName;
         this.context = context;
     }
     
 
-    public static Optional<CopyConfig> fromTagPath(TagPath tagPath, DesignerContext context) {
+    public static Optional<CopyConfig> fromTagNode(BrowseTreeNode tagNode, DesignerContext context) {
 
-        TagPath dropConfigPath = TagPathParser.parseSafe(tagPath.toString() + ".copyConfig");
+        TagPath dropConfigPath = TagPathParser.parseSafe(tagNode.getTagPath().toString() + ".copyConfig");
 
         try {
             List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get(); // this is blocking, do better?
@@ -44,7 +47,7 @@ public class CopyConfig {
                  DocumentArray docArray = (DocumentArray) qv.getValue();
                 if (docArray.size() > 0) {
                     if (isValidCopyConfigDoc(docArray.get(0).getAsDocument())){
-                        return Optional.of(new CopyConfig(docArray.get(0).getAsDocument(), context));
+                        return Optional.of(new CopyConfig(docArray.get(0).getAsDocument(), tagNode.getName(), context));
                     }
                 }
             }
@@ -55,7 +58,7 @@ public class CopyConfig {
 
         return Optional.empty();
     }
-    
+
 
     public static boolean isValidCopyConfigDoc(Document copyConfigDoc) {
         if (copyConfigDoc.has("name") && copyConfigDoc.has("componentJson")) {
@@ -76,7 +79,9 @@ public class CopyConfig {
     }
 
     public ComponentConfig getComponentConfig() {
-        return PerspectiveModule.createPerspectiveCompatibleGson().fromJson(this.getComponentJson(), ComponentConfig.class);
+        ComponentConfig componentConfig =  PerspectiveModule.createPerspectiveCompatibleGson().fromJson(this.getComponentJson(), ComponentConfig.class);
+        componentConfig.meta.addProperty("name", this.componentName);
+        return componentConfig;
     } 
 
 

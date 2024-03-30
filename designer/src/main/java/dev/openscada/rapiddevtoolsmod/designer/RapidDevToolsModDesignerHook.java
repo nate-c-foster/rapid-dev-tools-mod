@@ -59,12 +59,12 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
                 for (BrowseTreeNode tagNode : selectedTags){
                     logger.info(tagNode.getTagPath().toString());
 
-                    Optional<CopyConfig> copyConfigOpt = CopyConfig.fromTagPath(tagNode.getTagPath(), context);
+                    Optional<CopyConfig> copyConfigOpt = CopyConfig.fromTagNode(tagNode, context);
 
                     if (copyConfigOpt.isPresent()) {
                         copyConfigList.add(copyConfigOpt.get());
                     }
-                    
+
                 }
                 copyConfigList.addToClipboard();
             }
