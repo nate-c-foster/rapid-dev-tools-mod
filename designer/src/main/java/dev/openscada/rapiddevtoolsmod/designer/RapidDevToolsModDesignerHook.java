@@ -21,8 +21,10 @@ import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
 import com.inductiveautomation.ignition.common.tags.paths.parser.TagPathParser;
 import com.inductiveautomation.ignition.common.tags.model.TagPath;
+import com.inductiveautomation.ignition.common.gson.Gson;
 
 import java.util.List;
+import java.util.ArrayList;
 import javax.swing.Icon;
 import javax.swing.JMenuItem;
 import java.awt.event.ActionEvent;
@@ -31,6 +33,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.Arrays;
 import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 
 import org.apache.commons.lang3.SerializationUtils;
 import org.slf4j.Logger;
@@ -59,9 +63,11 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
     private void addMenuItemToTagBrowser() {
 
-        JMenuItem menuItem = new JMenuItem("Add to View");
+        JMenuItem menuItem = new JMenuItem("Copy View Config");
         ActionListener actionListener = new ActionListener() {
             public void actionPerformed(ActionEvent event) {
+
+                ArrayList<ComponentConfig> componentConfigs = new ArrayList<>();
                 for (BrowseTreeNode tagNode : selectedTags){
                     logger.info(tagNode.getTagPath().toString());
                     // logger.info(TagPathParser.parseSafe(tagNode.getTagPath().toString() + "/Parameters.opcPrefix").toString());
@@ -70,15 +76,18 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
                     // logger.info(tagNode.getInfo().getSubTypeId());
                     // logger.info(tagNode.getInfo().getAttributes().toString());
 
-                    TagPath dropConfigPath = TagPathParser.parseSafe(tagNode.getTagPath().toString() + ".dropConfig");
+                    TagPath dropConfigPath = TagPathParser.parseSafe(tagNode.getTagPath().toString() + ".copyConfig");
                     try {
                         List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get(); // this is CompletableFuture, do better
                         QualifiedValue qv = qvs.get(0);
                         if (qv.getQuality().isGood()) {
                             DocumentArray docArray = (DocumentArray) qv.getValue();
                             if (docArray.size() > 0) {
-                                logger.info(docArray.get(0).getAsDocument().getAsDocumentPrimitive("name").getAsString());
-                                addSymbolToView(docArray.get(0).getAsDocument().getAsDocumentPrimitive("symbolJson").getAsString(), "Test Views/View 1/P&ID");
+                                //logger.info(docArray.get(0).getAsDocument().getAsDocumentPrimitive("name").getAsString());
+                                //addSymbolToView(docArray.get(0).getAsDocument().getAsDocumentPrimitive("symbolJson").getAsString(), "Test Views/View 1/P&ID");
+                                String componentConfigJson = docArray.get(0).getAsDocument().getAsDocumentPrimitive("componentJson").getAsString();
+                                componentConfigs.add(PerspectiveModule.createPerspectiveCompatibleGson().fromJson(componentConfigJson, ComponentConfig.class));
+                                
                             }
                             
                         } 
@@ -87,6 +96,8 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
                     }
 
                 }
+                String copyConfigListString = PerspectiveModule.createPerspectiveCompatibleGson().toJson(componentConfigs);
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(copyConfigListString), null);
             }
         };
 
@@ -98,7 +109,7 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
                 if (    selectedTags.size() > 0 && 
                         selectedTags.stream().allMatch( selectedTag -> {
                             if (selectedTag.getInfo().getObjectType() == TagObjectType.UdtInstance) {
-                                TagPath dropConfigPath = TagPathParser.parseSafe(selectedTag.getTagPath().toString() + ".dropConfig");
+                                TagPath dropConfigPath = TagPathParser.parseSafe(selectedTag.getTagPath().toString() + ".copyConfig");
                                 try {
                                     List<QualifiedValue> qvs = context.getTagManager().readAsync(Arrays.asList(dropConfigPath)).get();
                                     QualifiedValue qv = qvs.get(0);
@@ -130,6 +141,10 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
         tagBrowserFrame.addOnTagSelectedListener(tagListener);
         tagBrowserFrame.addTagPopupMenuComponent(menuItem, 0);
     }
+
+
+
+
 
 
 
