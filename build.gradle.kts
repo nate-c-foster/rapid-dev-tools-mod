@@ -11,10 +11,10 @@ plugins {
     id("io.ia.sdk.modl") version("0.1.1")
 }
 
-val sdk_version by extra("8.1.20")
+val sdk_version by extra("8.1.23")
 
 allprojects {
-    version = "0.0.1-SNAPSHOT"
+    version = "0.1.0"
 }
 
 ignitionModule {
@@ -31,6 +31,8 @@ ignitionModule {
      * Unique identifier for the module.  Reverse domain convention is recommended (e.g.: com.mycompany.charting-module)
      */
     id.set("dev.openscada.rapiddevtoolsmod.RapidDevToolsMod")
+
+    license.set("LICENSE")
 
     /*
      * Version of the module.  Here being set to the same version that gradle uses, up above in this file.
