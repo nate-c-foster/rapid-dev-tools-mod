@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.swing.JMenu;
-import javax.swing.Icon;
 import javax.swing.JMenuItem;
 
 import java.awt.Toolkit;
@@ -28,9 +27,7 @@ import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
 // import org.slf4j.Logger;
 // import org.slf4j.LoggerFactory;
 
-/**
- * This is the Designer-scope module hook.  The minimal implementation contains a startup method.
- */
+
 public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
     //private static final Logger logger = LoggerFactory.getLogger(RapidDevToolsModDesignerHook.class);

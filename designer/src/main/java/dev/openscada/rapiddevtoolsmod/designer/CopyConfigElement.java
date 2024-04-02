@@ -1,3 +1,11 @@
+/**
+ * This class corresponds to a single array element from the .copyConfig custom property of a component UDT.
+ * 
+ * Behind the scenes, this is a Document class from the Ignition API.
+ */
+
+
+
 package dev.openscada.rapiddevtoolsmod.designer;
 
 import com.inductiveautomation.ignition.common.document.Document;
@@ -51,7 +59,7 @@ public class CopyConfigElement {
     } 
 
 
-    
+    // this is currently not being used. it adds a component directly to a view without copy/paste
     public void addComponentToViewRootContainer(String viewPath) {
 
         DesignableProject designableProject = this.designerContext.getProject();

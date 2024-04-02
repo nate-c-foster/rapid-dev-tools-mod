@@ -1,3 +1,10 @@
+/**
+ * This class corresponds to the .copyConfig custom property array of a component UDT.
+ * 
+ * Behind the scenes, this is a DocumentArray class from the Ignition API.
+ */
+
+
 package dev.openscada.rapiddevtoolsmod.designer;
 
 import java.util.ArrayList;
@@ -35,7 +42,7 @@ public class CopyConfig {
         this.copyConfig = copyConfig;
     }
     
-
+    // I guess this would be called a factory method to the OOP old farts.
     public static Optional<CopyConfig> fromTagNode(BrowseTreeNode tagNode, DesignerContext context) {
 
         List<CopyConfigElement> copyConfig = new ArrayList<CopyConfigElement>();
