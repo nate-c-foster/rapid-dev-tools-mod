@@ -1,6 +1,8 @@
 package dev.openscada.rapiddevtoolsmod.designer;
 
 import com.inductiveautomation.ignition.common.licensing.LicenseState;
+import com.inductiveautomation.ignition.common.script.ScriptManager;
+import com.inductiveautomation.ignition.common.script.hints.PropertiesFileDocProvider;
 import com.inductiveautomation.ignition.designer.model.AbstractDesignerModuleHook;
 import com.inductiveautomation.ignition.designer.model.DesignerContext;
 import com.inductiveautomation.ignition.designer.sqltags.dialog.OnTagSelectedListener;
@@ -8,24 +10,30 @@ import com.inductiveautomation.ignition.designer.tags.frame.TagBrowserFrame;
 import com.inductiveautomation.perspective.common.PerspectiveModule;
 import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
+import com.inductiveautomation.ignition.designer.querybrowser.QueryBrowser;
+import com.inductiveautomation.ignition.designer.querybrowser.ResultTable;
+
+import com.jidesoft.grid.JideTable;
+
+import java.awt.*;
+import java.util.*;
+
+import javax.swing.*;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
 
 
-import java.util.List;
-import java.util.Optional;
-
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-
-import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
+
+import java.lang.reflect.Field;
+
+import dev.openscada.rapiddevtoolsmod.common.RapidDevToolsScripts;
 import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
 
-// import org.slf4j.Logger;
-// import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
@@ -34,12 +42,74 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
     private DesignerContext context;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
 
     @Override
     public void startup(DesignerContext context, LicenseState activationState) throws Exception {
-        // implelement functionality as required
+        // implement functionality as required
         this.context = context;
+        logger.info("DesignerHook Constructor");
         addMenuItemToTagBrowser();
+        addButtonToQueryBrowser();
+
+    }
+
+    @Override
+    public void initializeScriptManager(ScriptManager manager){
+        super.initializeScriptManager(manager);
+        manager.addScriptModule("system.rapiddev", new RapidDevToolsScripts(), new PropertiesFileDocProvider());
+    }
+
+
+    private void addButtonToQueryBrowser() {
+
+        logger.info("DesignerHook add button to query browser");
+
+        QueryBrowser queryBrowser = context.getQueryBrowserPanel();
+
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menu = new JMenu("File");
+        JMenuItem menuItem = new JMenuItem("Export");
+
+        menuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                try {
+
+                    ResultTable resultTable = queryBrowser.getSelectedTab();
+                    Field tableField = resultTable.getClass().getDeclaredField("table");
+                    tableField.setAccessible(true);
+
+                    JideTable jideTable = (JideTable) tableField.get(resultTable);
+
+                    logger.info("Tab Name: " + resultTable.getTabName());
+                    logger.info("Last Query: " + resultTable.getLastQuery());
+                    logger.info("Index: " + Integer.toString(resultTable.getIndex()));
+                    logger.info("Data 0,0: " + jideTable.getValueAt(0,0).toString());
+
+                } catch(NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException except) {
+                    logger.error("No such field");
+                }
+
+
+
+            }
+        });
+
+        menu.add(menuItem);
+        menuBar.add(menu);
+        queryBrowser.setJMenuBar(menuBar);
+
+
+//        JButton button = new JButton("Export Button");
+//        Container container = queryBrowser.getContentPane();
+//        BasicSplitPaneDivider splitPaneDivider = (BasicSplitPaneDivider) container.getComponent(0);
+//        JSplitPane splitPane = splitPaneDivider.getBasicSplitPaneUI().getSplitPane();
+//        splitPane.setBottomComponent(button);
+//        queryBrowser.setContentPane(container);
+
 
     }
 
@@ -48,6 +118,7 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
     private void addMenuItemToTagBrowser() {
 
         JMenu copyConfigMenu = new JMenu("Copy View Config");
+
         copyConfigMenu.setIcon(IconUtil.getIcon("/dev/openscada/rapiddevtoolsmod/designer/icons/copy-image.svg"));
         OnTagSelectedListener tagListener = new OnTagSelectedListener() {
   
