@@ -12,29 +12,40 @@ import com.inductiveautomation.ignition.client.tags.tree.node.BrowseTreeNode;
 import com.inductiveautomation.ignition.common.tags.config.types.TagObjectType;
 import com.inductiveautomation.ignition.designer.querybrowser.QueryBrowser;
 import com.inductiveautomation.ignition.designer.querybrowser.ResultTable;
+import com.inductiveautomation.ignition.common.BasicDataset;
+import com.inductiveautomation.ignition.common.util.csv.CSVWriter;
 
 import com.jidesoft.grid.JideTable;
+import com.jidesoft.grid.SortableTableModel;
+
 
 import java.awt.*;
+import java.io.IOException;
 import java.util.*;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.JFileChooser;
 
 
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.io.File;
+import java.io.FileWriter;
 
 import java.lang.reflect.Field;
+
+
 
 import dev.openscada.rapiddevtoolsmod.common.RapidDevToolsScripts;
 import dev.openscada.rapiddevtoolsmod.designer.utils.IconUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.apache.commons.io.FilenameUtils;
 
 public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
 
@@ -71,6 +82,7 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu("File");
         JMenuItem menuItem = new JMenuItem("Export");
+        menuItem.setIcon(IconUtil.getIcon("/dev/openscada/rapiddevtoolsmod/designer/icons/kevin-icon.png"));
 
         menuItem.addActionListener(new ActionListener() {
             @Override
@@ -83,33 +95,77 @@ public class RapidDevToolsModDesignerHook extends AbstractDesignerModuleHook {
                     tableField.setAccessible(true);
 
                     JideTable jideTable = (JideTable) tableField.get(resultTable);
+                    
+                    Field tableModelField = resultTable.getClass().getDeclaredField("tableModel");
+                    tableModelField.setAccessible(true);
 
-                    logger.info("Tab Name: " + resultTable.getTabName());
-                    logger.info("Last Query: " + resultTable.getLastQuery());
-                    logger.info("Index: " + Integer.toString(resultTable.getIndex()));
-                    logger.info("Data 0,0: " + jideTable.getValueAt(0,0).toString());
+                    JFileChooser fileChooser = new JFileChooser();
+
+                    fileChooser.setAcceptAllFileFilterUsed(false);
+                    fileChooser.addChoosableFileFilter(new FileFilter() {
+                        @Override
+                        public boolean accept(File f) {
+                            String filename = f.getName().toLowerCase();
+                            return filename.endsWith(".csv");
+                        }
+
+                        @Override
+                        public String getDescription() {
+                            return "CSV";
+                        }
+                    });
+
+                    int fileChooserReturnVal = fileChooser.showSaveDialog(queryBrowser);
+
+                    if (fileChooserReturnVal ==  JFileChooser.APPROVE_OPTION) {
+                        File exportFile = fileChooser.getSelectedFile();
+
+
+                        if (!FilenameUtils.getExtension(exportFile.getName()).equalsIgnoreCase("csv")) {
+                            //exportFile = new File(exportFile.toString() + ".csv");
+                            exportFile = new File(exportFile.getParentFile(), FilenameUtils.getBaseName(exportFile.getName()) + ".csv");
+                        }
+
+
+                        try (FileWriter fw = new FileWriter(exportFile)) {
+                            CSVWriter csvWriter = new CSVWriter(fw);
+                            ArrayList<String> nextLine = new ArrayList<>();
+
+                            // Header
+                            for (int col=0; col < jideTable.getColumnCount(); col++) {
+                                nextLine.add(jideTable.getColumnName(col));
+                            }
+                            csvWriter.writeNext(nextLine);
+
+                            // Rows
+                            for (int row=0; row < jideTable.getRowCount(); row++) {
+                                nextLine.clear();
+                                for (int col=0; col < jideTable.getColumnCount(); col++) {
+                                    nextLine.add(jideTable.getValueAt(row,col) != null ? jideTable.getValueAt(row,col).toString() : "");
+                                }
+                                csvWriter.writeNext(nextLine);
+                            }
+                            csvWriter.close();
+
+                        } catch (IOException exception) {
+                            logger.error("FileWrite IOException");
+                        }
+
+                    } else {
+                        logger.info("File chooser canceled");
+                    }
+
+
 
                 } catch(NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException except) {
                     logger.error("No such field");
                 }
-
-
-
             }
         });
 
         menu.add(menuItem);
         menuBar.add(menu);
         queryBrowser.setJMenuBar(menuBar);
-
-
-//        JButton button = new JButton("Export Button");
-//        Container container = queryBrowser.getContentPane();
-//        BasicSplitPaneDivider splitPaneDivider = (BasicSplitPaneDivider) container.getComponent(0);
-//        JSplitPane splitPane = splitPaneDivider.getBasicSplitPaneUI().getSplitPane();
-//        splitPane.setBottomComponent(button);
-//        queryBrowser.setContentPane(container);
-
 
     }
 
